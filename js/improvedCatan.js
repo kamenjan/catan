@@ -6,16 +6,10 @@ var hexSize = 100;
 // Half of width of intersection buildings (x = 50, y = 50)
 var buildingSize = 25;
 
-// Half of width of top west edge road (x = 50, y = 50)
-var roadWSize;
+// Half of width of top edge road (x = 50, y = 50)
+var roadSize = 25;
 
-// Half of width of north edge road (x = 50, y = 50)
-var roadNSize;
-
-// Half of width of top east edge road (x = 50, y = 50)
-var roadESize;
-
-var offset = 0;
+var offset = 600;
 
 // Graphics objects
 var canvas;
@@ -31,7 +25,10 @@ var waterImage;
 var waterReady;
 var oreImage;
 
-var monsterImage;
+var villageImage;
+var diagonalRoadWImage;
+var diagonalRoadEImage;
+var horizontalRoadImage;
 
 // Game objects
 var gameGrid;
@@ -150,8 +147,8 @@ function Board() {
             });
 
             // Calculate intersection W and E pixels based on face point and intersection image size
-            intersectionLpixel = new Point(face.pixelPoint.x, face.pixelPoint.y + Math.sqrt(3) * hexSize / 2);
-            intersectionRpixel = new Point(face.pixelPoint.x + 2 * hexSize, face.pixelPoint.y + Math.sqrt(3) * hexSize / 2);
+            intersectionLpixel = new Point(face.pixelPoint.x - buildingSize, face.pixelPoint.y + Math.sqrt(3) * hexSize / 2 - buildingSize);
+            intersectionRpixel = new Point(face.pixelPoint.x + 2 * hexSize - buildingSize, face.pixelPoint.y + Math.sqrt(3) * hexSize / 2 - buildingSize);
 
             // Asign temp values to left and right intersection and populate intersections[]
             // If intersections has all three faces defined (is inside the playing field) add it to intersections[]
@@ -193,28 +190,27 @@ function Board() {
                     faceW2 = temp_face;
                 }
                 if (temp_face.q === u + 1 && temp_face.r === v) {
-                    faceN3 = temp_face;
+                    faceN2 = temp_face;
                 }
                 if (temp_face.q === u + 1 && temp_face.r === v) {
                     faceE2 = temp_face;
                 }
             });
 
-            // TODO
-            edgeWpixel = new Point(hexSize * 3 / 2 * face.q - hexSize, hexSize * Math.sqrt(3) * (face.r + face.q / 2));
-            edgeNpixel = new Point(hexSize * 3 / 2 * face.q + hexSize, hexSize * Math.sqrt(3) * (face.r + face.q / 2));
-            edgeEpixel = new Point(hexSize * 3 / 2 * face.q + hexSize, hexSize * Math.sqrt(3) * (face.r + face.q / 2));
+            edgeWpixelPoint = new Point(face.pixelPoint.x + hexSize / 4 - roadSize, face.pixelPoint.y + Math.sqrt(3) / 4 * hexSize - roadSize);
+            edgeNpixelPoint = new Point(face.pixelPoint.x + hexSize - roadSize, face.pixelPoint.y - roadSize);
+            edgeEpixelPoint = new Point(face.pixelPoint.x + hexSize * 7 / 4 - roadSize, face.pixelPoint.y + Math.sqrt(3) / 4 * hexSize - roadSize);
 
             if (faceW1 && faceW2) {
-                edges.push(new Edge(faceW1, faceW2, edgeWpixel, "W"));
+                edges.push(new Edge(faceW1, faceW2, edgeWpixelPoint, "W"));
             }
 
             if (faceN1 && faceN2) {
-                edges.push(new Edge(faceN1, faceN2, edgeNpixel, "N"));
+                edges.push(new Edge(faceN1, faceN2, edgeNpixelPoint, "N"));
             }
 
             if (faceE1 && faceE2) {
-                edges.push(new Edge(faceE1, faceE2, edgeEpixel, "E"));
+                edges.push(new Edge(faceE1, faceE2, edgeEpixelPoint, "E"));
             }
         });
 
@@ -231,7 +227,7 @@ function axialToPixel(q, r) {
     var x = hexSize * 3 / 2 * q;
     var y = hexSize * Math.sqrt(3) * (r + q / 2);
 
-    console.log(x, y);
+    //console.log(x, y);
     return new Point(x, y);
 }
 
@@ -296,12 +292,36 @@ function loadImages() {
     oreImage.src = "images/ore.png";
 
     // Monster image
-    var monsterReady = false;
-    monsterImage = new Image();
-    monsterImage.onload = function () {
-        monsterReady = true;
+    var villageReady = false;
+    villageImage = new Image();
+    villageImage.onload = function () {
+        villageReady = true;
     };
-    monsterImage.src = "images/monster.png";
+    villageImage.src = "images/village.png";
+
+    // Diagonal W road image
+    var diagonalRoadWReady = false;
+    diagonalRoadWImage = new Image();
+    diagonalRoadWImage.onload = function () {
+        diagonalRoadWReady = true;
+    };
+    diagonalRoadWImage.src = "images/diagonalroadW.png";
+
+    // Diagonal road image
+    var diagonalRoadEReady = false;
+    diagonalRoadEImage = new Image();
+    diagonalRoadEImage.onload = function () {
+        diagonalRoadEReady = true;
+    };
+    diagonalRoadEImage.src = "images/diagonalroadE.png";
+
+    // Horizontal road image
+    var horizontalRoadReady = false;
+    horizontalRoadImage = new Image();
+    horizontalRoadImage.onload = function () {
+        horizontalRoadReady = true;
+    };
+    horizontalRoadImage.src = "images/horizontalroad.png";
 }
 
 // Draw everything
@@ -339,7 +359,25 @@ var render = function () {
     });
 
     intersections.forEach(function (intersection) {
-        ctx.drawImage(monsterImage, intersection.pixelPoint.x + offset, intersection.pixelPoint.y + offset);
+        ctx.drawImage(villageImage, intersection.pixelPoint.x + offset, intersection.pixelPoint.y + offset);
+    });
+
+    edges.forEach(function (edge) {
+        var roadImage;
+
+        switch (edge.direction) {
+            case "W":
+                roadImage = diagonalRoadWImage;
+                break;
+            case "N":
+                roadImage = horizontalRoadImage;
+                break;
+            case "E":
+                roadImage = diagonalRoadEImage;
+                break;
+        }
+
+        ctx.drawImage(roadImage, edge.pixelPoint.x + offset, edge.pixelPoint.y + offset);
     });
 };
 
@@ -408,7 +446,7 @@ function init() {
 
     loadImages();
 
-    //console.log(edges); 
+    console.log(edges); 
 }
 
 var main = function () {
