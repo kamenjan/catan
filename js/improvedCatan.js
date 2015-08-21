@@ -163,54 +163,46 @@ function Board() {
 
         // Populate edges[]
         faces.forEach(function (face) {
-            var edgeW;
-            var edgeWpixel;
-            var faceW1, faceW2;
 
-            var edgeN;
-            var edgeNpixel;
-            var faceN1, faceN2;
+            var faceW1 = face;
+            var faceN1 = face;
+            var faceE1 = face;
 
-            var edgeE;
-            var edgeEpixel;
-            var faceE1, faceE2;
+            var faceW2;
+            var faceN2;
+            var faceE2;
 
             var u = face.q;
             var v = face.r;
 
-            // Asign all 2 (left and right intersections) * 3 faces to temp values 
+            // Check all faces against the current one and find 3 edges           
             faces.forEach(function (temp_face) {
-                // Get current and common face
-                if (temp_face.q === u && temp_face.r === v) {
-                    faceW1 = temp_face;
-                    faceN1 = temp_face;
-                    faceE1 = temp_face;
-                }
-                if (temp_face.q === u - 1 && temp_face.r === v + 1) {
+                if (temp_face.q === u - 1 && temp_face.r === v) {
                     faceW2 = temp_face;
                 }
-                if (temp_face.q === u + 1 && temp_face.r === v) {
+                if (temp_face.q === u && temp_face.r === v - 1) {
                     faceN2 = temp_face;
                 }
-                if (temp_face.q === u + 1 && temp_face.r === v) {
+                if (temp_face.q === u + 1 && temp_face.r === v - 1) {
                     faceE2 = temp_face;
                 }
             });
-
-            edgeWpixelPoint = new Point(face.pixelPoint.x + hexSize / 4 - roadSize, face.pixelPoint.y + Math.sqrt(3) / 4 * hexSize - roadSize);
-            edgeNpixelPoint = new Point(face.pixelPoint.x + hexSize - roadSize, face.pixelPoint.y - roadSize);
-            edgeEpixelPoint = new Point(face.pixelPoint.x + hexSize * 7 / 4 - roadSize, face.pixelPoint.y + Math.sqrt(3) / 4 * hexSize - roadSize);
-
-            if (faceW1 && faceW2) {
+            
+            // if the 3 edges do not have two faces or both of them are water 
+            // do not add them to edges[]
+            if (faceW2 !== undefined && !(faceW1.type === "water" && faceW2.type === "water")) {
+                edgeWpixelPoint = new Point(face.pixelPoint.x + hexSize / 4 - roadSize, face.pixelPoint.y + Math.sqrt(3) / 4 * hexSize - roadSize);
                 edges.push(new Edge(faceW1, faceW2, edgeWpixelPoint, "W"));
             }
 
-            if (faceN1 && faceN2) {
+            if (faceN2 !== undefined && !(faceN1.type === "water" && faceN2.type === "water")) {
+                edgeNpixelPoint = new Point(face.pixelPoint.x + hexSize - roadSize, face.pixelPoint.y - roadSize);
                 edges.push(new Edge(faceN1, faceN2, edgeNpixelPoint, "N"));
             }
 
-            if (faceE1 && faceE2) {
-                edges.push(new Edge(faceE1, faceE2, edgeEpixelPoint, "E"));
+            if (faceE2 !== undefined && !(faceE1.type === "water" && faceE2.type === "water")) {
+                    edgeEpixelPoint = new Point(face.pixelPoint.x + hexSize * 7 / 4 - roadSize, face.pixelPoint.y + Math.sqrt(3) / 4 * hexSize - roadSize);
+                    edges.push(new Edge(faceE1, faceE2, edgeEpixelPoint, "E"));
             }
         });
 
@@ -446,7 +438,8 @@ function init() {
 
     loadImages();
 
-    console.log(edges); 
+    //console.log(edges); 
+    //console.log(faces); 
 }
 
 var main = function () {
