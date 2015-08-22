@@ -9,6 +9,8 @@ var buildingSize = 25;
 // Half of width of top edge road (x = 50, y = 50)
 var roadSize = 25;
 
+// All pixel coordinates are derived from (0,0) 
+// so they have to be offset to the ++ quadrant
 var offset = 600;
 
 // Graphics objects
@@ -35,6 +37,9 @@ var gameGrid;
 var faces = [];
 var intersections = [];
 var edges = [];
+var resourceCards = [];
+var developmentCards = [];
+var players = [];
 
 
 // -----------------------------------------------------------------------------
@@ -50,13 +55,13 @@ function Face(x, y, z, type) {
 
     this.pixelPoint = axialToPixel(this.q, this.r);
     this.type = type;
+    this.resourceToken;
 }
 
 function Point(x, y) {
     this.x = x;
     this.y = y;
 }
-;
 
 function Intersection(face1, face2, face3, point) {
     this.faces = [];
@@ -66,7 +71,6 @@ function Intersection(face1, face2, face3, point) {
     this.faces.push(face3);
     this.pixelPoint = point;
 }
-;
 
 function Edge(face1, face2, point, direction) {
     this.faces = [];
@@ -84,6 +88,9 @@ function Board() {
     // otherwise ( this.generateMap(){} ) it is created with each object instance 
     Board.prototype.generateMap = function (radius) {
 
+        var resourceTokens = [5, 2, 6, 10, 9, 4, 3, 8, 11, 5, 8, 4, 3, 6, 10, 11, 12, 9];
+
+        var tokenCounter = 0;
         var resourceCounter = 0;
         var waterCounter = 0;
 
@@ -93,7 +100,6 @@ function Board() {
 
         // Populate faces[]
         for (var width = -radius; width <= radius; width++) {
-
 
             var r1 = Math.max(-radius, -width - radius);
             var r2 = Math.min(radius, -width + radius);
@@ -108,6 +114,15 @@ function Board() {
                 }
             }
         }
+
+        // And assign them resource counters
+        faces.forEach(function (face) {
+            if (face.type !== "water" && face.type !== "desert") {
+                face.tokenCounter = resourceTokens[tokenCounter];
+                tokenCounter++;
+                console.log(face);
+            }
+        });
 
         // Populate intersections[]
         faces.forEach(function (face) {
@@ -147,8 +162,14 @@ function Board() {
             });
 
             // Calculate intersection W and E pixels based on face point and intersection image size
-            intersectionLpixel = new Point(face.pixelPoint.x - buildingSize, face.pixelPoint.y + Math.sqrt(3) * hexSize / 2 - buildingSize);
-            intersectionRpixel = new Point(face.pixelPoint.x + 2 * hexSize - buildingSize, face.pixelPoint.y + Math.sqrt(3) * hexSize / 2 - buildingSize);
+            intersectionLpixel = 
+                    new Point ( 
+                    face.pixelPoint.x - buildingSize, 
+                    face.pixelPoint.y + Math.sqrt(3) * hexSize / 2 - buildingSize);
+            intersectionRpixel = 
+                    new Point(
+                    face.pixelPoint.x + 2 * hexSize - buildingSize, 
+                    face.pixelPoint.y + Math.sqrt(3) * hexSize / 2 - buildingSize);
 
             // Asign temp values to left and right intersection and populate intersections[]
             // If intersections has all three faces defined (is inside the playing field) add it to intersections[]
@@ -187,7 +208,7 @@ function Board() {
                     faceE2 = temp_face;
                 }
             });
-            
+
             // if the 3 edges do not have two faces or both of them are water 
             // do not add them to edges[]
             if (faceW2 !== undefined && !(faceW1.type === "water" && faceW2.type === "water")) {
@@ -201,14 +222,40 @@ function Board() {
             }
 
             if (faceE2 !== undefined && !(faceE1.type === "water" && faceE2.type === "water")) {
-                    edgeEpixelPoint = new Point(face.pixelPoint.x + hexSize * 7 / 4 - roadSize, face.pixelPoint.y + Math.sqrt(3) / 4 * hexSize - roadSize);
-                    edges.push(new Edge(faceE1, faceE2, edgeEpixelPoint, "E"));
+                edgeEpixelPoint = new Point(face.pixelPoint.x + hexSize * 7 / 4 - roadSize, face.pixelPoint.y + Math.sqrt(3) / 4 * hexSize - roadSize);
+                edges.push(new Edge(faceE1, faceE2, edgeEpixelPoint, "E"));
             }
         });
 
     };
 }
-;
+
+function Player() {
+    this.buildings = [];
+    this.roads = [];
+    this.resourceCards = [];
+    this.developmentCards = [];
+    
+    Player.prototype.build = function () {};
+}
+
+// -----------------------------------------------------------------------------
+// User input detection
+
+
+
+function getPosition(event)
+{
+  var x = event.x;
+  var y = event.y;
+
+  var canvas = document.getElementById("canvas");
+
+  //x -= canvas.offsetLeft;
+  //y -= canvas.offsetTop;
+
+  alert("x:" + x + " y:" + y);
+}
 
 // -----------------------------------------------------------------------------
 // Helper functions
@@ -216,8 +263,8 @@ function Board() {
 // TODO - rename faceToPixel (accepts axial coordinates)
 function axialToPixel(q, r) {
 
-    var x = hexSize * 3 / 2 * q;
-    var y = hexSize * Math.sqrt(3) * (r + q / 2);
+    var x = hexSize * 3 / 2 * q + offset;
+    var y = hexSize * Math.sqrt(3) * (r + q / 2) + offset;
 
     //console.log(x, y);
     return new Point(x, y);
@@ -319,39 +366,50 @@ function loadImages() {
 // Draw everything
 var render = function () {
 
-    faces.forEach(function (face) {
+    ctx.font = "56px serif";
+    ctx.strokeStyle = "yellow";
+    ctx.fillStyle = "white";
+    ctx.fillText("katanci - od mene za mene", 50, 60);
 
+    faces.forEach(function (face) {
         switch (face.type) {
             case "desert":
-                ctx.drawImage(desertImage, face.pixelPoint.x + offset, face.pixelPoint.y + offset);
+                ctx.drawImage(desertImage, face.pixelPoint.x, face.pixelPoint.y);
                 break;
             case "lumber":
-                ctx.drawImage(lumberImage, face.pixelPoint.x + offset, face.pixelPoint.y + offset);
+                ctx.drawImage(lumberImage, face.pixelPoint.x, face.pixelPoint.y);
                 break;
             case "clay":
                 if (clayReady) {
-                    ctx.drawImage(clayImage, face.pixelPoint.x + offset, face.pixelPoint.y + offset);
+                    ctx.drawImage(clayImage, face.pixelPoint.x, face.pixelPoint.y);
                 }
                 break;
             case "wool":
-                ctx.drawImage(woolImage, face.pixelPoint.x + offset, face.pixelPoint.y + offset);
+                ctx.drawImage(woolImage, face.pixelPoint.x, face.pixelPoint.y);
                 break;
             case "grain":
                 if (grainReady) {
-                    ctx.drawImage(grainImage, face.pixelPoint.x + offset, face.pixelPoint.y + offset);
+                    ctx.drawImage(grainImage, face.pixelPoint.x, face.pixelPoint.y);
+                    ctx.drawImage(grainImage, face.pixelPoint.x, face.pixelPoint.y);
                 }
                 break;
             case "ore":
-                ctx.drawImage(oreImage, face.pixelPoint.x + offset, face.pixelPoint.y + offset);
+                ctx.drawImage(oreImage, face.pixelPoint.x, face.pixelPoint.y);
                 break;
             case "water":
-                ctx.drawImage(waterImage, face.pixelPoint.x + offset, face.pixelPoint.y + offset);
+                ctx.drawImage(waterImage, face.pixelPoint.x, face.pixelPoint.y);
                 break;
         }
+
+        if (face.type !== "water" && face.type !== "desert") {
+            ctx.fillText(face.tokenCounter, face.pixelPoint.x + hexSize, face.pixelPoint.y + hexSize);
+            ctx.strokeText(face.tokenCounter, face.pixelPoint.x + hexSize, face.pixelPoint.y + hexSize);
+        }
+
     });
 
     intersections.forEach(function (intersection) {
-        ctx.drawImage(villageImage, intersection.pixelPoint.x + offset, intersection.pixelPoint.y + offset);
+        ctx.drawImage(villageImage, intersection.pixelPoint.x, intersection.pixelPoint.y);
     });
 
     edges.forEach(function (edge) {
@@ -369,7 +427,7 @@ var render = function () {
                 break;
         }
 
-        ctx.drawImage(roadImage, edge.pixelPoint.x + offset, edge.pixelPoint.y + offset);
+        ctx.drawImage(roadImage, edge.pixelPoint.x, edge.pixelPoint.y);
     });
 };
 
@@ -388,15 +446,12 @@ function getWaterArray(radius) {
     return waterTiles;
 }
 
-// Create resource array and shuffle it
+// Create resource array, shuffle it and add "desert" to the middle
 function getResourceArray(radius) {
 
     var resources = [];
 
     for (var i = 0; i < 4; i++) {
-        if (i < 1)
-            resources.push("desert");
-
         if (i < 3) {
             resources.push("ore");
             resources.push("clay");
@@ -421,14 +476,17 @@ function getResourceArray(radius) {
         resources[counter] = resources[index];
         resources[index] = temp;
     }
+    resources.splice(9, 0, "desert");
     return resources;
 }
 
-// Assignment expression with function expression on the right side
 function init() {
     // Create the canvas
     canvas = document.createElement("canvas");
     ctx = canvas.getContext("2d");
+    
+    canvas.addEventListener("mousedown", getPosition, false);
+    
     canvas.width = 1900;
     canvas.height = 1900;
     document.body.appendChild(canvas);
